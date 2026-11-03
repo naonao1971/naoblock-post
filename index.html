@@ -101,7 +101,8 @@ footer a{color:#c2185b;text-decoration:none;font-weight:700}
       </table>
       <p class="note" id="wComment"></p>
       <a class="btn" id="wBuild" href="#">🧱 組み立てる</a>
-      <button class="btn sub" id="wShare" type="button">🔗 シェアする</button>
+      <button class="btn sub" id="wShare" type="button">X にシェア</button>
+      <p class="note" id="wShareNote" hidden style="text-align:center"></p>
     </div>
     <p class="msg" id="workMsg"></p>
   </section>
@@ -236,6 +237,40 @@ function drawList() {
 $('q').oninput = $('sort').onchange = drawList;
 $('more').onclick = () => loadList(true);
 
+// ---- シェア（2D 組立ガイドの shareWithImage と同じ動き）----
+// スマホ（共有に対応）：共有シートに文章（最後に URL）と画像を渡す。PC など：画像を保存して、X の投稿画面を開く
+async function shareWithImage({ text, url, blob, fileName }) {
+  const file = blob ? new File([blob], fileName, { type: 'image/png' }) : null;
+  if (file && navigator.canShare?.({ files: [file] })) {
+    try { await navigator.share({ text: `${text} ${url}`, files: [file] }); } catch (e) { if (e?.name !== 'AbortError') alert(`シェアできませんでした：${e.message}`); }
+    return 'shared';
+  }
+  if (blob) {
+    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: fileName });
+    document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+  }
+  window.open(`https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank', 'noopener');
+  return blob ? 'saved' : 'opened';
+}
+// シェア用の画像（1080×1080）：作品を大きく描き直して、作品名・作者・パーツ数を添える
+async function shareImage(w) {
+  if (!w.data) w.data = (await api({ action: 'get', id: w.id })).work.data;
+  const plan = { bricks: w.data.bricks }, colors = Object.fromEntries(w.data.colors.map(c => [c, NB_UPLOAD.COLORS[c]]));
+  const art = await new Promise((ok, ng) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ng; i.src = NB_THUMB(plan, colors, 820); });
+  const cv = document.createElement('canvas'); cv.width = cv.height = 1080;
+  const g = cv.getContext('2d'), F = 'system-ui, -apple-system, "Hiragino Sans", sans-serif';
+  g.fillStyle = '#f5f0eb'; g.fillRect(0, 0, 1080, 1080);
+  g.drawImage(art, 130, 40, 820, 820);
+  g.fillStyle = '#3a2f33'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.font = `bold 52px ${F}`;
+  let name = w.name; while (g.measureText(name).width > 980 && name.length > 1) name = name.slice(0, -1);
+  g.fillText(name === w.name ? name : name + '…', 540, 910);
+  g.font = `30px ${F}`; g.fillStyle = '#7a6e73';
+  g.fillText(`${w.author}さん・パーツ ${w.parts}個・${w.layers}段`, 540, 975);
+  g.textAlign = 'right'; g.font = `bold 26px ${F}`; g.fillText('naoblock 投稿サイト', 1040, 1040);
+  return new Promise(ok => cv.toBlob(ok, 'image/png'));
+}
+
 // ---- 作品ページ ----
 async function showWork(id) {
   $('workCard').hidden = true; $('workMsg').className = 'msg'; $('workMsg').textContent = '読み込み中…';
@@ -246,10 +281,13 @@ async function showWork(id) {
     $('wParts').textContent = `${w.parts}個`; $('wLayers').textContent = `${w.layers}段`; $('wSize').textContent = `${w.W}×${w.D}×${w.H}`;
     $('wComment').textContent = w.comment;
     $('wBuild').href = `${CFG.BUILDER_URL}?post=${w.id}`;
+    $('wShareNote').hidden = true;
+    let shareBlob = null;   // 押す前に作っておく（押してから作ると、共有や新しいタブが止められることがある）
+    shareImage(w).then(b => { shareBlob = b; }).catch(() => {});
     $('wShare').onclick = async () => {
       const url = `${CFG.SITE_URL}#work-${w.id}`, text = `${w.name}（${w.author}さん）の3D組立図 #ナオブロック`;
-      try { if (navigator.share) return await navigator.share({ text, url }); } catch (e) { if (e.name === 'AbortError') return; }
-      await navigator.clipboard.writeText(`${text} ${url}`); alert('リンクをコピーしました');
+      const r = await shareWithImage({ text, url, blob: shareBlob, fileName: `naoblock-post-${w.id}.png` });
+      if (r === 'saved') { $('wShareNote').textContent = '画像を保存しました。X の投稿画面で添付してください'; $('wShareNote').hidden = false; }
     };
     $('workCard').hidden = false; $('workMsg').textContent = '';
     document.title = `${w.name}｜ナオブロック投稿サイト`;
