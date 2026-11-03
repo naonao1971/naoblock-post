@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ナオブロック投稿サイト</title>
+<meta name="description" content="ナノブロックの3D組立図を投稿して、みんなの作品を組み立てられる場所。">
+<meta property="og:type" content="website">
+<meta property="og:title" content="ナオブロック投稿サイト｜みんなの3D組立図">
+<meta property="og:description" content="ナノブロックの3D組立図を投稿して、みんなの作品を組み立てよう。見る・組み立てるのはログインなしでOK。">
+<meta property="og:url" content="https://post.naoblock.jp/">
+<meta name="twitter:card" content="summary">
+<style>
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:#f4f1ec;color:#3c3237;font-family:'Hiragino Sans','Hiragino Kaku Gothic ProN',sans-serif;-webkit-tap-highlight-color:transparent}
+header{position:sticky;top:0;z-index:5;background:#fffe;backdrop-filter:blur(6px);border-bottom:1px solid #eadfe3;padding:10px 14px;display:flex;align-items:center;gap:10px}
+header h1{margin:0;font-size:17px;flex:1}
+header h1 a{color:inherit;text-decoration:none}
+header h1 small{display:block;font-size:11px;color:#7a6e73;font-weight:400}
+.login{font:inherit;font-size:13px;font-weight:700;border:0;border-radius:99px;padding:7px 12px;background:#06c755;color:#fff;cursor:pointer;max-width:45%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.login.on{background:#eadfe3;color:#3c3237}
+main{max-width:720px;margin:0 auto;padding:12px 12px 90px}
+.card{background:#fff;border-radius:16px;padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.note{font-size:12px;color:#7a6e73;margin:6px 0 0;line-height:1.6}
+h2{font-size:16px;margin:14px 0 8px}
+.tools{display:flex;gap:8px;margin-bottom:10px}
+.tools input,.tools select{font:inherit;font-size:14px;border:1px solid #e3dbde;border-radius:10px;padding:8px 10px;background:#fff;min-width:0}
+.tools input{flex:1}.tools select{flex:none}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+@media(max-width:560px){.grid{grid-template-columns:1fr 1fr}}
+.grid>*{min-width:0}
+.work{display:block;text-decoration:none;text-align:left;border:0;font:inherit;color:inherit;cursor:pointer;width:100%}
+.work img,.big img,.row img{display:block;width:100%;aspect-ratio:1/1;object-fit:contain;background:#f4f1ec;border-radius:12px}
+.work b{display:block;font-size:15px;margin-top:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.meta{font-size:12px;color:#7a6e73;margin-top:2px;overflow:hidden;text-overflow:ellipsis}
+.tag{display:inline-block;font-size:11px;background:#eadfe3;border-radius:99px;padding:2px 8px;margin-top:4px}
+.btn{display:block;width:100%;font:inherit;font-size:16px;font-weight:700;border:0;border-radius:14px;padding:14px;background:#e65f91;color:#fff;cursor:pointer;margin-top:10px;text-align:center;text-decoration:none}
+.btn.sub{background:#eadfe3;color:#3c3237}
+.btn.line{background:#06c755}
+.btn:disabled{opacity:.5;cursor:default}
+table{width:100%;border-collapse:collapse;font-size:14px;margin-top:8px}
+td{padding:6px 2px;border-bottom:1px solid #f0e8eb}td.n{text-align:right;font-weight:700}
+.drop{display:block;margin:0 0 10px;padding:22px 10px;border:2px dashed #e65f91;border-radius:12px;text-align:center;font-weight:700;color:#c2185b;cursor:pointer}
+.drop input{display:none}
+label.f{display:block;font-size:13px;font-weight:700;margin-top:12px}
+label.f input{display:block;width:100%;margin-top:4px;font:inherit;font-size:15px;border:1px solid #e3dbde;border-radius:10px;padding:10px}
+.check{margin-top:10px;border-radius:12px;padding:10px 12px;font-size:14px;line-height:1.8}
+.check.ok{background:#e8f5e9}.check.ng{background:#fdecea}
+.preview{width:140px;margin:10px auto 0}
+.warn{font-size:12px;background:#fff8e1;border-radius:10px;padding:8px 10px;margin-top:12px;line-height:1.6}
+.row{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid #f0e8eb}
+.row img{width:64px;flex:none}
+.row .t{flex:1;min-width:0}.row .t b{font-size:15px}
+.row .acts{display:flex;flex-direction:column;gap:6px}
+.row button{font:inherit;font-size:12px;font-weight:700;border:0;border-radius:99px;padding:7px 10px;background:#eadfe3;color:#3c3237;cursor:pointer;white-space:nowrap}
+.row button.del{background:#fff;color:#c62828;border:1px solid #f0c4c4}
+.msg{text-align:center;color:#7a6e73;font-size:14px;padding:24px 0}
+.msg.err{color:#c62828}
+nav.tab{position:fixed;left:0;right:0;bottom:0;z-index:5;background:#fffe;backdrop-filter:blur(6px);border-top:1px solid #eadfe3;display:flex;padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
+nav.tab a{flex:1;text-align:center;font-size:11px;color:#7a6e73;text-decoration:none;padding:4px 0}
+nav.tab a span{display:block;font-size:20px}
+nav.tab a.on{color:#c2185b;font-weight:700}
+section{display:none}section.on{display:block}
+footer{font-size:12px;color:#7a6e73;text-align:center;margin-top:28px;line-height:1.9}
+footer a{color:#c2185b;text-decoration:none;font-weight:700}
+</style>
+<script src="config.js"></script>
+<script src="upload.js"></script>
+<script src="thumb.js"></script>
+<script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+</head>
+<body>
+<header>
+  <h1><a href="#list">ナオブロック投稿サイト<small>みんなの3D組立図</small></a></h1>
+  <button class="login" id="login" type="button">LINEでログイン</button>
+</header>
+<main>
+  <!-- みんなの作品 -->
+  <section id="list">
+    <div class="tools">
+      <input id="q" type="search" placeholder="🔍 作品名・作者でさがす">
+      <select id="sort"><option value="new">新しい順</option><option value="few">パーツが少ない順</option><option value="many">パーツが多い順</option></select>
+    </div>
+    <div class="grid" id="grid"></div>
+    <p class="msg" id="listMsg">読み込み中…</p>
+    <button class="btn sub" id="more" type="button" hidden>もっと見る</button>
+  </section>
+
+  <!-- 作品ページ -->
+  <section id="work">
+    <a href="#list" style="font-size:14px;color:#c2185b;text-decoration:none">← みんなの作品へ</a>
+    <div class="card big" style="margin-top:8px" id="workCard" hidden>
+      <img id="wImg" alt="">
+      <h2 id="wName" style="font-size:20px;margin:10px 0 2px"></h2>
+      <div class="meta" id="wMeta"></div>
+      <table>
+        <tr><td>パーツ</td><td class="n" id="wParts"></td></tr>
+        <tr><td>段数</td><td class="n" id="wLayers"></td></tr>
+        <tr><td>大きさ（横×奥行き×高さ）</td><td class="n" id="wSize"></td></tr>
+      </table>
+      <p class="note" id="wComment"></p>
+      <a class="btn" id="wBuild" href="#">🧱 組み立てる</a>
+      <button class="btn sub" id="wShare" type="button">🔗 シェアする</button>
+    </div>
+    <p class="msg" id="workMsg"></p>
+  </section>
+
+  <!-- 投稿する -->
+  <section id="post">
+    <h2>作品を投稿する</h2>
+    <div class="card" id="postNeedLogin">
+      <p style="margin:0;line-height:1.7">投稿するには、LINEログインが必要です。作品を削除できるのは、投稿した本人だけです。</p>
+      <button class="btn line" type="button" data-login>LINEでログイン</button>
+    </div>
+    <div class="card" id="postForm" hidden>
+      <label class="drop"><input type="file" id="file" accept=".json,.txt,.js,application/json,text/plain">📄 作品ファイルを選ぶ<br><span style="font-weight:400;font-size:12px;color:#7a6e73">3D組立ガイドで「保存」したファイル</span></label>
+      <div id="checkBox"></div>
+      <div id="fields" hidden>
+        <label class="f">作品名<input id="pName" maxlength="30"></label>
+        <label class="f">作者名（表示される名前）<input id="pAuthor" maxlength="20"></label>
+        <label class="f">ひとこと（任意）<input id="pComment" maxlength="100" placeholder="例：くノ一の咲耶をミニナノサイズで"></label>
+        <div class="warn">⚠️ サイトのデータは、予告なく消える場合があります。作品ファイルは、ご自身で保存しておいてください。</div>
+        <button class="btn" id="send" type="button">投稿する</button>
+        <p class="note" id="sendMsg" role="status" style="text-align:center"></p>
+      </div>
+      <p class="note">パーツ<b id="limParts"></b>個・データ<b id="limChars"></b>文字まで（ミニナノくらいの大きさ）。投稿すると<a href="terms.html" style="color:#c2185b">利用規約</a>に同意したことになります。</p>
+    </div>
+  </section>
+
+  <!-- マイ作品 -->
+  <section id="mine">
+    <h2>マイ作品</h2>
+    <div class="card" id="mineNeedLogin">
+      <p style="margin:0;line-height:1.7">自分の作品の保存・削除は、LINEログインしてから使えます。</p>
+      <button class="btn line" type="button" data-login>LINEでログイン</button>
+    </div>
+    <div class="card" id="mineList" hidden></div>
+  </section>
+
+  <footer>
+    見る・組み立てるのは、ログインなしで誰でもOK。投稿するときだけLINEログインが必要です。<br>
+    <a href="https://naoblock.jp/">naoblock.jp</a>　<a href="https://builder-3d.naoblock.jp/">3D組立ガイド</a>　<a href="terms.html">利用規約・プライバシー</a>
+  </footer>
+</main>
+
+<nav class="tab">
+  <a href="#list" data-t="list"><span>🧱</span>みんなの作品</a>
+  <a href="#post" data-t="post"><span>📤</span>投稿する</a>
+  <a href="#mine" data-t="mine"><span>🗂</span>マイ作品</a>
+</nav>
+
+<script>
+const CFG = window.NB_POST_CONFIG;
+const LIMIT = { parts: 200, dataChars: 30000 };   // gas/Code.gs の LIMIT と同じにする
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const shortDate = d => String(d).slice(5).replace('-', '/');
+$('limParts').textContent = LIMIT.parts; $('limChars').textContent = LIMIT.dataChars.toLocaleString();
+
+// ---- GAS とのやり取り ----
+async function api(params) {
+  const r = await fetch(`${CFG.GAS_URL}?${new URLSearchParams(params)}`);
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || '読み込めませんでした');
+  return j;
+}
+async function apiPost(body) {
+  const idToken = await idTokenOrLogin();
+  if (!idToken) throw new Error('LINE ログインが必要です');
+  const r = await fetch(CFG.GAS_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ ...body, idToken }) });
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || 'うまくいきませんでした');
+  return j;
+}
+
+// ---- LINE ログイン（LIFF）----
+let me = null;   // { name }
+const liffReady = (async () => {
+  if (!CFG.LIFF_ID || !window.liff) return;
+  try {
+    await liff.init({ liffId: CFG.LIFF_ID });
+    if (liff.isLoggedIn()) { const p = await liff.getProfile(); me = { name: p.displayName }; }
+  } catch (e) { console.warn('LIFF', e); }
+})();
+async function idTokenOrLogin() {
+  await liffReady;
+  if (!window.liff || !CFG.LIFF_ID) return null;
+  if (!liff.isLoggedIn()) { login(); return null; }
+  return liff.getIDToken();
+}
+function login() {
+  if (!CFG.LIFF_ID || !window.liff) return alert('LINE ログインの準備中です');
+  liff.login({ redirectUri: location.href });
+}
+function logout() {
+  if (!confirm('ログアウトしますか？')) return;
+  liff.logout(); me = null; showLogin(); route();
+}
+function showLogin() {
+  const b = $('login');
+  b.textContent = me ? `${me.name} ✓` : 'LINEでログイン';
+  b.classList.toggle('on', !!me);
+  $('postNeedLogin').hidden = $('mineNeedLogin').hidden = !!me;
+  $('postForm').hidden = $('mineList').hidden = !me;
+}
+$('login').onclick = () => me ? logout() : login();
+document.querySelectorAll('[data-login]').forEach(b => b.onclick = login);
+
+// ---- みんなの作品 ----
+let works = [], total = 0;
+const PAGE = 24;
+async function loadList(more) {
+  $('listMsg').hidden = false; $('listMsg').className = 'msg'; $('listMsg').textContent = '読み込み中…';
+  try {
+    const j = await api({ action: 'list', limit: PAGE, offset: more ? works.length : 0 });
+    works = more ? works.concat(j.works) : j.works; total = j.total;
+    drawList();
+  } catch (e) { $('listMsg').className = 'msg err'; $('listMsg').textContent = `読み込めませんでした：${e.message}`; }
+}
+function drawList() {
+  const q = $('q').value.trim().toLowerCase(), sort = $('sort').value;
+  let list = works.filter(w => !q || `${w.name} ${w.author}`.toLowerCase().includes(q));
+  if (sort === 'few') list = [...list].sort((a, b) => a.parts - b.parts);
+  if (sort === 'many') list = [...list].sort((a, b) => b.parts - a.parts);
+  $('grid').innerHTML = list.map(w => `
+    <a class="card work" href="#work-${w.id}">
+      <img src="${esc(w.thumb)}" alt="" loading="lazy"><b>${esc(w.name)}</b>
+      <div class="meta">${esc(w.author)}・${shortDate(w.date)}</div>
+      <span class="tag">${w.parts}パーツ</span>
+    </a>`).join('');
+  $('listMsg').hidden = list.length > 0;
+  $('listMsg').textContent = works.length ? '見つかりませんでした' : 'まだ作品がありません。最初の1作品を投稿してみませんか？';
+  $('more').hidden = works.length >= total;
+}
+$('q').oninput = $('sort').onchange = drawList;
+$('more').onclick = () => loadList(true);
+
+// ---- 作品ページ ----
+async function showWork(id) {
+  $('workCard').hidden = true; $('workMsg').className = 'msg'; $('workMsg').textContent = '読み込み中…';
+  try {
+    const w = works.find(x => x.id === id) || (await api({ action: 'get', id })).work;
+    $('wImg').src = w.thumb; $('wName').textContent = w.name;
+    $('wMeta').textContent = `No.${w.id}・${w.author}・${w.date}`;
+    $('wParts').textContent = `${w.parts}個`; $('wLayers').textContent = `${w.layers}段`; $('wSize').textContent = `${w.W}×${w.D}×${w.H}`;
+    $('wComment').textContent = w.comment;
+    $('wBuild').href = `${CFG.BUILDER_URL}?post=${w.id}`;
+    $('wShare').onclick = async () => {
+      const url = `${CFG.SITE_URL}#work-${w.id}`, text = `${w.name}（${w.author}さん）の3D組立図 #ナオブロック`;
+      try { if (navigator.share) return await navigator.share({ text, url }); } catch (e) { if (e.name === 'AbortError') return; }
+      await navigator.clipboard.writeText(`${text} ${url}`); alert('リンクをコピーしました');
+    };
+    $('workCard').hidden = false; $('workMsg').textContent = '';
+    document.title = `${w.name}｜ナオブロック投稿サイト`;
+  } catch (e) { $('workMsg').className = 'msg err'; $('workMsg').textContent = e.message; }
+}
+
+// ---- 投稿する ----
+let picked = null;   // { name, plan, json, thumb }
+const compact = plan => JSON.stringify({ H: plan.H, W: plan.W, D: plan.D, aspect: 1.0, colors: Object.keys(plan.palette), bricks: plan.bricks.map(b => ({ y: b.y, shape: b.shape, col: b.col, cells: b.cells, ...(b.recolor ? { recolor: 1 } : {}) })) });
+$('file').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  picked = null; $('fields').hidden = true; $('sendMsg').textContent = '';
+  const box = $('checkBox');
+  try {
+    const r = NB_UPLOAD.parse(await f.text());
+    const n = r.plan.bricks.length, json = compact(r.plan);
+    const okParts = n <= LIMIT.parts, okChars = json.length <= LIMIT.dataChars;
+    if (!okParts || !okChars) {
+      box.innerHTML = `<div class="check ng">${!okParts ? `❌ パーツが多すぎます（${n}個／上限 ${LIMIT.parts}個）<br>` : ''}${!okChars ? `❌ データが大きすぎます（${json.length.toLocaleString()}文字／上限 ${LIMIT.dataChars.toLocaleString()}文字）<br>` : ''}ミニナノくらいの大きさまで投稿できます</div>`;
+      return;
+    }
+    // サムネは GAS の上限（40,000文字）に収まるまで、小さく描き直す
+    let thumb;
+    for (const px of [240, 200, 160, 128]) { thumb = NB_THUMB(r.plan, NB_UPLOAD.COLORS, px); if (thumb.length <= 38000) break; }
+    picked = { name: r.name, plan: r.plan, data: JSON.parse(json), thumb };
+    box.innerHTML = `<div class="check ok">✅ 読み込めました：<b>${esc(r.name)}</b><br>✅ パーツ ${n}個（上限 ${LIMIT.parts}個）<br>✅ データ ${json.length.toLocaleString()}文字（上限 ${LIMIT.dataChars.toLocaleString()}文字）<br>✅ 色はぜんぶ使える色です${r.floating ? `<br>ℹ️ 下に何もないパーツが ${r.floating}個あります（組立ガイドでは下から差し込む手順になります）` : ''}</div><img class="preview" src="${thumb}" alt="">`;
+    $('pName').value = r.name === '読み込んだ作品' ? '' : r.name;
+    if (!$('pAuthor').value && me) $('pAuthor').value = me.name.slice(0, 20);
+    $('fields').hidden = false;
+  } catch (err) {
+    box.innerHTML = `<div class="check ng">❌ 読み込めませんでした：${esc(err.message)}</div>`;
+  }
+};
+$('send').onclick = async () => {
+  if (!picked) return;
+  const name = $('pName').value.trim(), author = $('pAuthor').value.trim();
+  if (!name || !author) return $('sendMsg').textContent = '作品名と作者名を入れてください';
+  $('send').disabled = true; $('sendMsg').textContent = '投稿しています…';
+  try {
+    const j = await apiPost({ action: 'post', name, author, comment: $('pComment').value.trim(), data: picked.data, thumb: picked.thumb });
+    picked = null; $('checkBox').innerHTML = ''; $('fields').hidden = true; $('pName').value = $('pComment').value = '';
+    works = []; location.hash = `work-${j.id}`;
+  } catch (e) { $('sendMsg').textContent = `投稿できませんでした：${e.message}`; }
+  finally { $('send').disabled = false; }
+};
+
+// ---- マイ作品 ----
+async function showMine() {
+  const box = $('mineList');
+  box.innerHTML = '<p class="msg">読み込み中…</p>';
+  try {
+    const j = await apiPost({ action: 'mine' });
+    if (!j.works.length) { box.innerHTML = '<p class="msg">まだ投稿した作品はありません。</p>'; return; }
+    box.innerHTML = j.works.map(w => `
+      <div class="row"><img src="${esc(w.thumb)}" alt="">
+        <div class="t"><b>${esc(w.name)}</b><div class="meta">No.${w.id}・${w.date}・${w.parts}パーツ${w.public ? '' : '・<span style="color:#c62828">非公開</span>'}</div></div>
+        <div class="acts"><button type="button" data-save="${w.id}">💾 保存</button><button type="button" class="del" data-del="${w.id}">削除</button></div>
+      </div>`).join('') + '<div class="warn">⚠️ サイトのデータは、予告なく消える場合があります。こまめに「保存」しておいてください。</div>';
+    box.onclick = async e => {
+      const s = e.target.dataset.save, d = e.target.dataset.del;
+      const w = j.works.find(x => String(x.id) === (s || d));
+      if (!w) return;
+      if (s) {   // 3D 組立ガイドでも、この投稿サイトでも読める形（組立データ）で保存する
+        const palette = Object.fromEntries(w.data.colors.map(c => [c, NB_UPLOAD.COLORS[c]]));
+        const file = { name: w.name, H: w.data.H, W: w.data.W, D: w.data.D, aspect: 1.0, palette, bricks: w.data.bricks };
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([JSON.stringify(file)], { type: 'application/json' }));
+        a.download = `${w.name}_naoblock.json`; a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      }
+      if (d && confirm(`「${w.name}」を削除しますか？元に戻せません。\n先に「保存」しておくと安心です。`)) {
+        e.target.disabled = true;
+        try { await apiPost({ action: 'delete', id: w.id }); works = works.filter(x => x.id !== w.id); showMine(); }
+        catch (err) { alert(`削除できませんでした：${err.message}`); e.target.disabled = false; }
+      }
+    };
+  } catch (e) { box.innerHTML = `<p class="msg err">${esc(e.message)}</p>`; }
+}
+
+// ---- 画面の切り替え（#list・#work-12・#post・#mine）----
+function route() {
+  const h = location.hash.slice(1) || 'list';
+  const [page, id] = h.split('-');
+  const p = ['list', 'work', 'post', 'mine'].includes(page) ? page : 'list';
+  document.querySelectorAll('section').forEach(s => s.classList.toggle('on', s.id === p));
+  document.querySelectorAll('nav.tab a').forEach(a => a.classList.toggle('on', a.dataset.t === (p === 'work' ? 'list' : p)));
+  if (p !== 'work') document.title = 'ナオブロック投稿サイト';
+  if (p === 'list' && !works.length) loadList();
+  if (p === 'work') showWork(Number(id));
+  if (p === 'mine' && me) showMine();
+  scrollTo(0, 0);
+}
+addEventListener('hashchange', route);
+liffReady.then(() => { showLogin(); route(); });
+</script>
+</body>
+</html>
