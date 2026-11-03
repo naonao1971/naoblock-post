@@ -120,13 +120,13 @@ footer a{color:#c2185b;text-decoration:none;font-weight:700}
   <!-- 投稿する -->
   <section id="post">
     <h2>作品を投稿する</h2>
-    <p class="note" style="margin:0 0 12px;line-height:1.7">💡 作品ファイルは、AIに作ってもらえます。<a href="https://builder-3d.naoblock.jp/ai_prompt.txt" target="_blank" rel="noopener" style="color:#c2185b">AIに渡す指示書</a>を貼って、作りたいものを書くだけ。返ってきたJSONを<a href="https://builder-3d.naoblock.jp/" target="_blank" rel="noopener" style="color:#c2185b">3D組立ガイド</a>の「📂 ファイルから読み込む」で確かめて、「💾 ファイルに保存」したファイルを選んでください。</p>
+    <p class="note" style="margin:0 0 12px;line-height:1.7">💡 作品ファイルは、AIに作ってもらえます。<a href="https://builder-3d.naoblock.jp/ai_prompt.txt" target="_blank" rel="noopener" style="color:#c2185b">AIに渡す指示書</a>を貼って、作りたいものを書くだけ。返ってきたJSONをファイルに保存して、下で選んでください。投稿する前に、完成図で形を確かめられます。</p>
     <div class="card" id="postNeedLogin">
       <p style="margin:0;line-height:1.7">投稿するには、LINEログインが必要です。作品を削除できるのは、投稿した本人だけです。</p>
       <button class="btn line" type="button" data-login>LINEでログイン</button>
     </div>
     <div class="card" id="postForm" hidden>
-      <label class="drop"><input type="file" id="file" accept=".json,.txt,.js,application/json,text/plain">📄 作品ファイルを選ぶ<br><span style="font-weight:400;font-size:12px;color:#7a6e73">3D組立ガイドで「保存」したファイル</span></label>
+      <label class="drop"><input type="file" id="file" accept=".json,.txt,.js,application/json,text/plain">📄 作品ファイルを選ぶ<br><span style="font-weight:400;font-size:12px;color:#7a6e73">AIが作ったJSON・マイ作品で保存したファイル</span></label>
       <div id="checkBox"></div>
       <div id="fields" hidden>
         <label class="f">作品名<input id="pName" maxlength="30"></label>
@@ -312,13 +312,11 @@ async function showWork(id) {
 let picked = null;   // { name, plan, json, thumb }
 let justPosted = 0;   // 今投稿した作品の番号（お礼と友だち追加の案内を出す）
 const compact = plan => JSON.stringify({ H: plan.H, W: plan.W, D: plan.D, aspect: 1.0, colors: Object.keys(plan.palette), bricks: plan.bricks.map(b => ({ y: b.y, shape: b.shape, col: b.col, cells: b.cells, ...(b.recolor ? { recolor: 1 } : {}) })) });
-$('file').onchange = async e => {
-  const f = e.target.files[0]; e.target.value = '';
-  if (!f) return;
+const useText = text => {
   picked = null; $('fields').hidden = true; $('sendMsg').textContent = '';
   const box = $('checkBox');
   try {
-    const r = NB_UPLOAD.parse(await f.text());
+    const r = NB_UPLOAD.parse(text);
     const n = r.plan.bricks.length, json = compact(r.plan);
     const okParts = n <= LIMIT.parts, okChars = json.length <= LIMIT.dataChars;
     if (!okParts || !okChars) {
@@ -337,6 +335,7 @@ $('file').onchange = async e => {
     box.innerHTML = `<div class="check ng">❌ 読み込めませんでした：${esc(err.message)}</div>`;
   }
 };
+$('file').onchange = async e => { const f = e.target.files[0]; e.target.value = ''; if (f) useText(await f.text()); };
 $('send').onclick = async () => {
   if (!picked) return;
   const name = $('pName').value.trim(), author = $('pAuthor').value.trim();
