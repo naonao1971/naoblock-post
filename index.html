@@ -21,6 +21,8 @@ header h1 small{display:block;font-size:11px;color:#7a6e73;font-weight:400}
 .login{font:inherit;font-size:13px;font-weight:700;border:0;border-radius:99px;padding:7px 12px;background:#06c755;color:#fff;cursor:pointer;max-width:45%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .login.on{background:#eadfe3;color:#3c3237}
 main{max-width:720px;margin:0 auto;padding:12px 12px 90px}
+.thanks{margin-top:8px;text-align:center;border:2px solid #f3c1d3}
+.btn.line{background:#06c755}
 .card{background:#fff;border-radius:16px;padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
 .note{font-size:12px;color:#7a6e73;margin:6px 0 0;line-height:1.6}
 h2{font-size:16px;margin:14px 0 8px}
@@ -90,6 +92,14 @@ footer a{color:#c2185b;text-decoration:none;font-weight:700}
   <!-- 作品ページ -->
   <section id="work">
     <a href="#list" style="font-size:14px;color:#c2185b;text-decoration:none">← みんなの作品へ</a>
+    <!-- 投稿した直後だけ出す。友だち追加の案内は、まだ友だちでない人にだけ（投稿に友だち追加は要らない） -->
+    <div class="card thanks" id="thanks" hidden>
+      <p style="margin:0;font-weight:700;font-size:16px">投稿ありがとうございます！🎉</p>
+      <div id="friendAsk" hidden>
+        <p class="note" style="font-size:13px">公式LINE「ナオブロックラボ」を友だち追加すると、新作やみんなの作品のお知らせが届きます。</p>
+        <a class="btn line" href="https://line.me/R/ti/p/@134wkonl" target="_blank" rel="noopener">友だち追加する</a>
+      </div>
+    </div>
     <div class="card big" style="margin-top:8px" id="workCard" hidden>
       <img id="wImg" alt="">
       <h2 id="wName" style="font-size:20px;margin:10px 0 2px"></h2>
@@ -273,6 +283,9 @@ async function shareImage(w) {
 
 // ---- 作品ページ ----
 async function showWork(id) {
+  $('thanks').hidden = justPosted !== id; $('friendAsk').hidden = true;
+  if (justPosted === id) liff.getFriendship().then(r => { $('friendAsk').hidden = r.friendFlag; }).catch(() => {});   // わからないときは出さない
+  justPosted = 0;
   $('workCard').hidden = true; $('workMsg').className = 'msg'; $('workMsg').textContent = '読み込み中…';
   try {
     const w = works.find(x => x.id === id) || (await api({ action: 'get', id })).work;
@@ -296,6 +309,7 @@ async function showWork(id) {
 
 // ---- 投稿する ----
 let picked = null;   // { name, plan, json, thumb }
+let justPosted = 0;   // 今投稿した作品の番号（お礼と友だち追加の案内を出す）
 const compact = plan => JSON.stringify({ H: plan.H, W: plan.W, D: plan.D, aspect: 1.0, colors: Object.keys(plan.palette), bricks: plan.bricks.map(b => ({ y: b.y, shape: b.shape, col: b.col, cells: b.cells, ...(b.recolor ? { recolor: 1 } : {}) })) });
 $('file').onchange = async e => {
   const f = e.target.files[0]; e.target.value = '';
@@ -330,7 +344,7 @@ $('send').onclick = async () => {
   try {
     const j = await apiPost({ action: 'post', name, author, comment: $('pComment').value.trim(), data: picked.data, thumb: picked.thumb });
     picked = null; $('checkBox').innerHTML = ''; $('fields').hidden = true; $('pName').value = $('pComment').value = '';
-    works = []; location.hash = `work-${j.id}`;
+    works = []; justPosted = Number(j.id); location.hash = `work-${j.id}`;
   } catch (e) { $('sendMsg').textContent = `投稿できませんでした：${e.message}`; }
   finally { $('send').disabled = false; }
 };
