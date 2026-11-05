@@ -56,6 +56,9 @@ label.f input{display:block;width:100%;margin-top:4px;font:inherit;font-size:15p
 .row .t{flex:1;min-width:0}.row .t b{font-size:15px}
 .row .acts{display:flex;flex-direction:column;gap:6px}
 .row button{font:inherit;font-size:12px;font-weight:700;border:0;border-radius:99px;padding:7px 10px;background:#eadfe3;color:#3c3237;cursor:pointer;white-space:nowrap}
+.pubchk{display:flex;align-items:flex-start;gap:8px;margin:12px 0 4px;font-size:14px;line-height:1.6;cursor:pointer}
+.pubchk input{width:20px;height:20px;margin:2px 0 0;flex:none;accent-color:#e65f91}
+.pubchk small{display:block;color:#7a6e73;font-size:12px}
 .row button.del{background:#fff;color:#c62828;border:1px solid #f0c4c4}
 .msg{text-align:center;color:#7a6e73;font-size:14px;padding:24px 0}
 .msg.err{color:#c62828}
@@ -132,6 +135,7 @@ footer a{color:#c2185b;text-decoration:none;font-weight:700}
         <label class="f">作品名<input id="pName" maxlength="30"></label>
         <label class="f">作者名（表示される名前）<input id="pAuthor" maxlength="20"></label>
         <label class="f">ひとこと（任意）<input id="pComment" maxlength="100" placeholder="例：くノ一の咲耶をミニナノサイズで"></label>
+        <label class="pubchk"><input type="checkbox" id="pPublic" checked><span>みんなの作品に公開する<small>外すと、マイ作品にだけ入ります（自分用の保存）。あとから公開に切り替えられます。</small></span></label>
         <div class="warn">⚠️ サイトのデータは、予告なく消える場合があります。作品ファイルは、ご自身で保存しておいてください。</div>
         <button class="btn" id="send" type="button">投稿する</button>
         <p class="note" id="sendMsg" role="status" style="text-align:center"></p>
@@ -342,29 +346,43 @@ $('send').onclick = async () => {
   if (!name || !author) return $('sendMsg').textContent = '作品名と作者名を入れてください';
   $('send').disabled = true; $('sendMsg').textContent = '投稿しています…';
   try {
-    const j = await apiPost({ action: 'post', name, author, comment: $('pComment').value.trim(), data: picked.data, thumb: picked.thumb });
-    picked = null; $('checkBox').innerHTML = ''; $('fields').hidden = true; $('pName').value = $('pComment').value = '';
-    works = []; justPosted = Number(j.id); location.hash = `work-${j.id}`;
+    const pub = $('pPublic').checked;
+    const j = await apiPost({ action: 'post', name, author, comment: $('pComment').value.trim(), data: picked.data, thumb: picked.thumb, public: pub });
+    picked = null; $('checkBox').innerHTML = ''; $('fields').hidden = true; $('pName').value = $('pComment').value = ''; $('pPublic').checked = true;
+    works = [];
+    if (pub) { justPosted = Number(j.id); location.hash = `work-${j.id}`; }
+    else { mineNote = `「${name}」を非公開で保存しました。公開するときは「公開する」を押してください。`; location.hash = 'mine'; }
   } catch (e) { $('sendMsg').textContent = `投稿できませんでした：${e.message}`; }
   finally { $('send').disabled = false; }
 };
 
 // ---- マイ作品 ----
+let mineNote = '';
 async function showMine() {
   const box = $('mineList');
   box.innerHTML = '<p class="msg">読み込み中…</p>';
   try {
     const j = await apiPost({ action: 'mine' });
     if (!j.works.length) { box.innerHTML = '<p class="msg">まだ投稿した作品はありません。</p>'; return; }
-    box.innerHTML = j.works.map(w => `
+    const note = mineNote ? `<p class="note" role="status" style="margin:0 0 8px;color:#2e7d32">✅ ${esc(mineNote)}</p>` : '';
+    mineNote = '';
+    box.innerHTML = note + j.works.map(w => `
       <div class="row"><img src="${esc(w.thumb)}" alt="">
-        <div class="t"><b>${esc(w.name)}</b><div class="meta">No.${w.id}・${w.date}・${w.parts}パーツ${w.public ? '' : '・<span style="color:#c62828">非公開</span>'}</div></div>
-        <div class="acts"><button type="button" data-save="${w.id}">💾 保存</button><button type="button" class="del" data-del="${w.id}">削除</button></div>
+        <div class="t"><b>${esc(w.name)}</b><div class="meta">No.${w.id}・${w.date}・${w.parts}パーツ${w.stopped ? '・<span style="color:#c62828">管理者が公開を停止中</span>' : w.public ? '・公開中' : '・<span style="color:#c62828">非公開</span>'}</div></div>
+        <div class="acts"><button type="button" data-save="${w.id}">💾 保存</button>${w.stopped ? '' : `<button type="button" data-pub="${w.id}">${w.public ? '非公開にする' : '公開する'}</button>`}<button type="button" class="del" data-del="${w.id}">削除</button></div>
       </div>`).join('') + '<div class="warn">⚠️ サイトのデータは、予告なく消える場合があります。こまめに「保存」しておいてください。</div>';
     box.onclick = async e => {
-      const s = e.target.dataset.save, d = e.target.dataset.del;
-      const w = j.works.find(x => String(x.id) === (s || d));
+      const s = e.target.dataset.save, d = e.target.dataset.del, pb = e.target.dataset.pub;
+      const w = j.works.find(x => String(x.id) === (s || d || pb));
       if (!w) return;
+      if (pb) {
+        const to = !w.public;
+        if (!confirm(to ? `「${w.name}」をみんなの作品に公開しますか？` : `「${w.name}」を非公開にしますか？\nみんなの作品の一覧から消えて、リンクを開いても見られなくなります。作品はマイ作品に残ります。`)) return;
+        e.target.disabled = true;
+        try { await apiPost({ action: 'setPublic', id: w.id, public: to }); works = []; mineNote = to ? `「${w.name}」を公開しました。` : `「${w.name}」を非公開にしました。`; showMine(); }
+        catch (err) { alert(`切り替えられませんでした：${err.message}`); e.target.disabled = false; }
+        return;
+      }
       if (s) {   // 3D 組立ガイドでも、この投稿サイトでも読める形（組立データ）で保存する
         const palette = Object.fromEntries(w.data.colors.map(c => [c, NB_UPLOAD.COLORS[c]]));
         const file = { name: w.name, H: w.data.H, W: w.data.W, D: w.data.D, aspect: 1.0, palette, bricks: w.data.bricks };
