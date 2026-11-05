@@ -17,7 +17,7 @@
  *   post の public を false にすると、非公開で投稿する（省くと公開）
  *
  * 「公開」の列：作者が切り替える。FALSE だと一覧にも 1 件取得にも出ない（マイ作品には出る）
- * 管理者が下げるとき：シートの「停止」の列にチェックを入れる（作者は公開に戻せない）
+ * 管理者が消すとき：シートの行を削除する
  *
  * 初めて使うとき：
  *   1. 新しいスプレッドシートを作る →［拡張機能］→［Apps Script］にこのファイルを丸ごと貼る
@@ -28,7 +28,7 @@
 
 const LINE_CHANNEL_ID = '2012312496';   // LINE ログインチャネル「naoblock 3D」（LIFF はこの中に作る）
 const SHEET = '作品';
-const COLS = ['作品番号', '作品名', '作者', '投稿日', '作品データ', 'パーツ数', '段数', '横', '奥行き', '高さ', 'ひとこと', 'サムネ', '公開', 'LINEユーザーID', '規格', '停止'];
+const COLS = ['作品番号', '作品名', '作者', '投稿日', '作品データ', 'パーツ数', '段数', '横', '奥行き', '高さ', 'ひとこと', 'サムネ', '公開', 'LINEユーザーID', '規格'];
 const SPEC = 1;   // 作品データの規格（形を変えたら上げる）
 
 // 上限（ミニナノくらいまで）
@@ -112,8 +112,7 @@ const card_ = v => ({
   parts: v[C['パーツ数']], layers: v[C['段数']], W: v[C['横']], D: v[C['奥行き']], H: v[C['高さ']],
   comment: String(v[C['ひとこと']]), thumb: String(v[C['サムネ']]),
 });
-const isStopped_ = v => v[C['停止']] === true;
-const isPublic_ = v => v[C['公開']] === true && !isStopped_(v);
+const isPublic_ = v => v[C['公開']] === true;
 
 function list_(limit, offset) {
   limit = Math.max(1, Math.min(limit, 48));
@@ -129,7 +128,7 @@ function getOne_(id) {
 
 function mine_(user) {
   const mine = rows_().filter(r => r.v[C['LINEユーザーID']] === user.id).reverse();
-  return { ok: true, works: mine.map(r => Object.assign(card_(r.v), { public: isPublic_(r.v), stopped: isStopped_(r.v), data: JSON.parse(r.v[C['作品データ']]) })) };
+  return { ok: true, works: mine.map(r => Object.assign(card_(r.v), { public: isPublic_(r.v), data: JSON.parse(r.v[C['作品データ']]) })) };
 }
 
 function post_(user, b) {
@@ -155,12 +154,11 @@ function post_(user, b) {
     const row = [];
     row[C['作品番号']] = id; row[C['作品名']] = name; row[C['作者']] = author; row[C['投稿日']] = new Date();
     row[C['作品データ']] = d.json; row[C['パーツ数']] = d.parts; row[C['段数']] = d.H; row[C['横']] = d.W; row[C['奥行き']] = d.D; row[C['高さ']] = d.H;
-    row[C['ひとこと']] = comment; row[C['サムネ']] = thumb; row[C['公開']] = pub; row[C['LINEユーザーID']] = user.id; row[C['規格']] = SPEC; row[C['停止']] = '';
+    row[C['ひとこと']] = comment; row[C['サムネ']] = thumb; row[C['公開']] = pub; row[C['LINEユーザーID']] = user.id; row[C['規格']] = SPEC;
     const sh = sheet_();
     sh.appendRow(row);
     const box = sh.getRange(sh.getLastRow(), C['公開'] + 1).insertCheckboxes();
     if (pub) box.check(); else box.uncheck();
-    sh.getRange(sh.getLastRow(), C['停止'] + 1).insertCheckboxes().uncheck();
     return { ok: true, id, public: pub };
   } finally { lock.releaseLock(); }
 }
@@ -172,7 +170,6 @@ function setPublic_(user, id, pub) {
     const all = rows_();
     const r = all.find(r => r.v[C['作品番号']] === id);
     if (!r || r.v[C['LINEユーザーID']] !== user.id) throw new Error('この作品は切り替えられません（投稿した本人だけが切り替えられます）');
-    if (pub && isStopped_(r.v)) throw new Error('この作品は管理者が公開を止めています');
     if (pub && !isPublic_(r.v) && all.filter(x => x.v[C['LINEユーザーID']] === user.id && isPublic_(x.v)).length >= LIMIT.perUser) throw new Error(`公開できる作品は1人${LIMIT.perUser}個までです`);
     const cell = sheet_().getRange(r.row, C['公開'] + 1);
     if (!cell.getDataValidation()) cell.insertCheckboxes();
