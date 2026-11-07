@@ -126,6 +126,7 @@ footer a{color:#c2185b;text-decoration:none;font-weight:700}
     <h2>作品を投稿する</h2>
     <p class="note" style="margin:0 0 12px;line-height:1.7">💡 作品ファイルは、AIに作ってもらえます。<a href="https://builder-3d.naoblock.com/ai_prompt.txt" target="_blank" rel="noopener" style="color:#c2185b">AIに渡す指示書</a>を貼って、作りたいものを書くだけ。返ってきたJSONをファイルに保存して、下で選んでください。投稿する前に、完成図で形を確かめられます。</p>
     <div class="card" id="postNeedLogin">
+      <p data-expired hidden style="margin:0 0 6px;line-height:1.7;color:#c62828">LINE ログインの期限が切れました。もう一度ログインしてください。</p>
       <p style="margin:0;line-height:1.7">投稿するには、LINEログインが必要です。作品を削除できるのは、投稿した本人だけです。</p>
       <button class="btn line" type="button" data-login>LINEでログイン</button>
     </div>
@@ -149,6 +150,7 @@ footer a{color:#c2185b;text-decoration:none;font-weight:700}
   <section id="mine">
     <h2>マイ作品</h2>
     <div class="card" id="mineNeedLogin">
+      <p data-expired hidden style="margin:0 0 6px;line-height:1.7;color:#c62828">LINE ログインの期限が切れました。もう一度ログインしてください。</p>
       <p style="margin:0;line-height:1.7">自分の作品の保存・削除は、LINEログインしてから使えます。</p>
       <button class="btn line" type="button" data-login>LINEでログイン</button>
     </div>
@@ -187,22 +189,39 @@ async function apiPost(body) {
   if (!idToken) throw new Error('LINE ログインが必要です');
   const r = await fetch(CFG.GAS_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ ...body, idToken }) });
   const j = await r.json();
+  if (!j.ok && /期限が切れ/.test(j.error || '')) expireLogin();   // サーバーで切れていると言われたときも同じ
   if (!j.ok) throw new Error(j.error || 'うまくいきませんでした');
   return j;
 }
 
 // ---- LINE ログイン（LIFF）----
 let me = null;   // { name }
+let expired = false;   // ログインの期限が切れてログアウトしたところ
+// 本人確認に使う ID トークンは約1時間で切れるのに、liff.isLoggedIn() は true のまま。
+// そのままだと投稿が失敗し続け、ログインボタンも出ない。切れていたらログアウト扱いにしてボタンを出す。
+function tokenAlive() {
+  const t = liff.getDecodedIDToken();
+  return !!(t && t.exp * 1000 > Date.now() + 60 * 1000);   // 1分の余裕を見る
+}
+function expireLogin() {
+  try { liff.logout(); } catch (e) {}
+  me = null; expired = true; showLogin();
+}
 const liffReady = (async () => {
   if (!CFG.LIFF_ID || !window.liff) return;
   try {
     await liff.init({ liffId: CFG.LIFF_ID });
+    if (liff.isLoggedIn() && !tokenAlive()) expireLogin();
     if (liff.isLoggedIn()) { const p = await liff.getProfile(); me = { name: p.displayName }; }
   } catch (e) { console.warn('LIFF', e); }
 })();
 async function idTokenOrLogin() {
   await liffReady;
   if (!window.liff || !CFG.LIFF_ID) return null;
+  if (liff.isLoggedIn() && !tokenAlive()) {
+    expireLogin();
+    throw new Error('LINE ログインの期限が切れました。「LINEでログイン」からもう一度ログインしてください');
+  }
   if (!liff.isLoggedIn()) { login(); return null; }
   return liff.getIDToken();
 }
@@ -219,6 +238,7 @@ function showLogin() {
   b.textContent = me ? `${me.name} ✓` : 'LINEでログイン';
   b.classList.toggle('on', !!me);
   $('postNeedLogin').hidden = $('mineNeedLogin').hidden = !!me;
+  document.querySelectorAll('[data-expired]').forEach(p => p.hidden = me || !expired);
   $('postForm').hidden = $('mineList').hidden = !me;
 }
 $('login').onclick = () => me ? logout() : login();
