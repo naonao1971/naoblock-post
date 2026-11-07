@@ -389,8 +389,8 @@ async function showMine() {
     mineNote = '';
     box.innerHTML = note + j.works.map(w => `
       <div class="row"><img src="${esc(w.thumb)}" alt="">
-        <div class="t"><b>${esc(w.name)}</b><div class="meta">No.${w.id}・${w.date}・${w.parts}パーツ${w.public ? '・公開中' : '・<span style="color:#c62828">非公開</span>'}</div></div>
-        <div class="acts"><button type="button" data-save="${w.id}">💾 保存</button><button type="button" data-pub="${w.id}">${w.public ? '非公開にする' : '公開する'}</button><button type="button" class="del" data-del="${w.id}">削除</button></div>
+        <div class="t"><b>${esc(w.name)}</b><div class="meta">No.${w.id}・${w.date}・${w.parts}パーツ${w.stopped ? '・<span style="color:#c62828">管理者が公開を停止中</span>' : w.public ? '・公開中' : '・<span style="color:#c62828">非公開</span>'}</div></div>
+        <div class="acts"><button type="button" data-save="${w.id}">💾 保存</button>${w.stopped ? '' : `<button type="button" data-pub="${w.id}">${w.public ? '非公開にする' : '公開する'}</button>`}<button type="button" class="del" data-del="${w.id}">削除</button></div>
       </div>`).join('') + '<div class="warn">⚠️ サイトのデータは、予告なく消える場合があります。こまめに「保存」しておいてください。</div>';
     box.onclick = async e => {
       const s = e.target.dataset.save, d = e.target.dataset.del, pb = e.target.dataset.pub;
