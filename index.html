@@ -138,7 +138,7 @@ footer a{color:#c2185b;text-decoration:none;font-weight:700}
         <label class="f">作者名（表示される名前）<input id="pAuthor" maxlength="20"></label>
         <label class="f">ひとこと（任意）<input id="pComment" maxlength="100" placeholder="例：くノ一の咲耶をミニナノサイズで"></label>
         <label class="pubchk"><input type="checkbox" id="pPublic" checked><span>みんなの作品に公開する<small>外すと、マイ作品にだけ入ります（自分用の保存）。あとから公開に切り替えられます。</small></span></label>
-        <div class="warn">⚠️ サイトのデータは、予告なく消える場合があります。作品ファイルは、ご自身で保存しておいてください。</div>
+        <div class="warn">⚠️ 作品は運営者のGoogleスプレッドシートに保存しますが、自動のバックアップはありません。投稿したあとも、作品ファイルは手元に残しておいてください（「マイ作品」の「💾 保存」からもダウンロードできます）。</div>
         <button class="btn" id="send" type="button">投稿する</button>
         <p class="note" id="sendMsg" role="status" style="text-align:center"></p>
       </div>
@@ -391,7 +391,7 @@ async function showMine() {
       <div class="row"><img src="${esc(w.thumb)}" alt="">
         <div class="t"><b>${esc(w.name)}</b><div class="meta">No.${w.id}・${w.date}・${w.parts}パーツ${w.stopped ? '・<span style="color:#c62828">管理者が公開を停止中</span>' : w.public ? '・公開中' : '・<span style="color:#c62828">非公開</span>'}</div></div>
         <div class="acts"><button type="button" data-save="${w.id}">💾 保存</button>${w.stopped ? '' : `<button type="button" data-pub="${w.id}">${w.public ? '非公開にする' : '公開する'}</button>`}<button type="button" class="del" data-del="${w.id}">削除</button></div>
-      </div>`).join('') + '<div class="warn">⚠️ サイトのデータは、予告なく消える場合があります。こまめに「保存」しておいてください。</div>';
+      </div>`).join('') + '<div class="warn">⚠️ 自動のバックアップはありません。「削除」した作品は元に戻せないので、こまめに「💾 保存」しておいてください。</div>';
     box.onclick = async e => {
       const s = e.target.dataset.save, d = e.target.dataset.del, pb = e.target.dataset.pub;
       const w = j.works.find(x => String(x.id) === (s || d || pb));
